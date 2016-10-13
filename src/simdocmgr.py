@@ -28,13 +28,15 @@ import shutil
 
 # Config Values:
 
-scanpagePrg = '/usr/bin/scanpage'
-scanpageOpts = 'options'
+scanpagePrg = '/usr/bin/scanimage'
+scanpageOpts = '--format=TIFF --mode=Gray'
 
 convertPrg = '/usr/bin/convert'
 convertOpts = 'options'
 
 dataDir = '../data'
+
+logging.basicConfig(format='%(asctime)s %(message)s', filename='../log/simdocmgr.log', level=logging.INFO)
 
 # Code:
 
@@ -51,19 +53,27 @@ def scanPages(nbrPages, outPath):
     for i in range(1, nbrPages):
         p = subprocess.Popen([scanpagePrg, scanpageOpts], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         spOut, spErr = p.communicate()
-        logging.info("Logging page " + str(i))
-        logging.info(spOut)
+        tmpFP, tmpFN = tempfile.mkstemp(suffix='.tif',text=False)
+        logging.info('Scanning page ' + str(i) + ' into file ' + tmpFN)
+        os.write(tmpFP, spOut)
+        os.close(tmpFP)
         logging.warning(spErr)
         p = None
+        tmpFP = None
+        tmpFN = None
+
+        # TODO: Implement some kind of 'press any key' between pages
+
+        pass
 
     # Now we use ImageMagick to glue all of the tiff files together into a pdf.
 
     logging.info("Gluing together PDF's")
 
-    tmpFP, tmpFN = tempfile.mkstmp()
-    tmpFP.close()
+    tmpFP, tmpFN = tempfile.mkstemp()
+    os.close(tmpFP)
     tmpFN = tmpFN + '.pdf'
-    logging.info("Created filename: " tmpFN)
+    logging.info("Created filename for PDF: " + tmpFN)
 
     p = subprocess.Popen([convertPrg, convertOpts], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     cvOut, cvErr = p.communicate()
