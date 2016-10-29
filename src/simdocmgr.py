@@ -39,7 +39,7 @@ convertOpts = 'options'
 
 dataDir = '../data'
 
-logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', filename='../log/simdocmgr.log', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', filename='../log/simdocmgr.log', level=logging.DEBUG)
 
 # Database Setup:
 
@@ -49,7 +49,7 @@ dbCur = dbConn.cursor()
 
 # SQL Queries:
 
-sqlLookupTags = 'SELECT tag_text FROM doc_tags WHERE tag_text LIKE ?'
+sqlLookupTags = "SELECT tag_text FROM doc_tags WHERE tag_text LIKE ? || '%'"
 sqlInsertNewTag = "INSERT INTO doc_tags (tag_text, create_date) VALUES (?, date('now'))"
 
 # Code:
@@ -58,16 +58,27 @@ class TagSelector(npyscreen.wgautocomplete.Autocomplete):
     def auto_complete(self, input):
 
         global dbCur, dbConn, sqlLookupTags, sqlInsertNewTag
+        locTxtResList = []
 
         # Is this tag in the database?
 
-        locFldVal = self.value
-        locResult = dbCur.execute(sqlLookupTags, [locFldVal, ])
+        locFldSrchVal = self.value
+        logging.debug("Searching for the token " + locFldSrchVal)
+        locResult = dbCur.execute(sqlLookupTags, [locFldSrchVal, ])
+        locFldResList = locResult.fetchall()
+
+        for txtVal in locFldResList:
+            locTxtResList.append(txtVal[0])
 
         # If there are no results, add this to the database
 
-        dbCur.execute(sqlInsertNewTag, [locFldVal, ])
-        dbConn.commit()
+        if len(locTxtResList) == 0:
+            logging.debug("Did not find " + self.value + ", adding it to the database")
+            dbCur.execute(sqlInsertNewTag, [locFldSrchVal, ])
+            dbConn.commit()
+        else:
+            # If there ARE results, present a chooser
+            self.value = str(locTxtResList[self.get_choice(locTxtResList)])
 
         self.cursor_position=len(self.value)
 
@@ -76,29 +87,47 @@ class TagSelector(npyscreen.wgautocomplete.Autocomplete):
 class TitleTagSelector(npyscreen.wgtitlefield.TitleText):
     _entry_type = TagSelector
 
+
+class ScannerSessionForm(npyscreen.FormBaseNew):
+
+    def create(self):
+
+        self.sessFld = self.add(npyscreen.TitleFixedText, name = "Current Session:", )
+        self.docNbr = self.add(npyscreen.TitleFixedText, name = "Document Number:", )
+        self.fldTags = self.add(TitleTagSelector, name = "Tags:", )
+        self.fldAttribs = self.add(npyscreen.TitleText, name = "Attributes:", )
+        self.fldEffDt = self.add(npyscreen.TitleDateCombo, name = "Effective Date:", )
+        self.fldNumPgs = self.add(npyscreen.TitleSlider, name = "Number of Pages:", out_of = 16)
+        self.tagList = self.add(npyscreen.TitlePager, name= "Current Tags:", )
+
+    def while_editing(self, arg):
+
+        currTags = ''
+
+        if arg is self.fldAttribs or arg is self.docNbr:
+            currTags = self.tagList.value
+            if currTags is not None:
+                currTags = currTags + '\n' + self.fldTags.value
+                self.tagList.value = currTags
+                logging.debug("Set currTags to " + currTags)
+            else:
+                currTags = self.fldTags.value
+                logging.debug("Set currTags to " + currTags)
+            
+            self.tagList.display()
+
+        pass
+
 class SimDocApp(npyscreen.NPSApp):
 
     def main(self):
 
-        MF = npyscreen.Form(name = "SIMple DOCument ManaGeR")
-        fldTags = MF.add(TitleTagSelector, name = "Tags:", )
-        fldAttribs = MF.add(npyscreen.TitleText, name = "Attributes:", )
-        fldEffDt = MF.add(npyscreen.TitleDateCombo, name = "Effective Date:", )
-        tagsList = MF.add(npyscreen.TitlePager, name = "Current Tags:", )
+        MF = ScannerSessionForm(name = "SIMple DOCument ManaGeR")
 
         MF.edit()
 
         pass
 
-
-
-    def adjust_widgets(self):
-
-        # This is called for every keypress
-
-
-        pass
-    
     def showError(errText):
 
 
