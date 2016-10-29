@@ -55,14 +55,28 @@ sqlInsertNewTag = "INSERT INTO doc_tags (tag_text, create_date) VALUES (?, date(
 # Code:
 
 class TagSelector(npyscreen.wgautocomplete.Autocomplete):
+
+    valueList = []
+    currValOffset = 0
+    displayString = ''
+
+    def clear_values(self):
+        self.valueList = []
+        pass
+
+    def get_values(self):
+        return self.valueList
+    
     def auto_complete(self, input):
 
         global dbCur, dbConn, sqlLookupTags, sqlInsertNewTag
         locTxtResList = []
 
+        currValue = self.value[self.currValOffset:]
+        
         # Is this tag in the database?
 
-        locFldSrchVal = self.value
+        locFldSrchVal = currValue
         logging.debug("Searching for the token " + locFldSrchVal)
         locResult = dbCur.execute(sqlLookupTags, [locFldSrchVal, ])
         locFldResList = locResult.fetchall()
@@ -73,13 +87,19 @@ class TagSelector(npyscreen.wgautocomplete.Autocomplete):
         # If there are no results, add this to the database
 
         if len(locTxtResList) == 0:
-            logging.debug("Did not find " + self.value + ", adding it to the database")
+            logging.debug("Did not find " + currValue + ", adding it to the database")
             dbCur.execute(sqlInsertNewTag, [locFldSrchVal, ])
             dbConn.commit()
         else:
             # If there ARE results, present a chooser
-            self.value = str(locTxtResList[self.get_choice(locTxtResList)])
+            currValue = str(locTxtResList[self.get_choice(locTxtResList)])
 
+        # Append this value to the list:
+        self.valueList.append(currValue)
+
+        self.currValOffset = self.currValOffset + len (currValue) + 2
+        self.displayString = self.displayString + currValue + '; '
+        self.value = self.displayString
         self.cursor_position=len(self.value)
 
         pass
@@ -102,19 +122,14 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
     def while_editing(self, arg):
 
-        currTags = ''
-
-        if arg is self.fldAttribs or arg is self.docNbr:
-            currTags = self.tagList.value
-            if currTags is not None:
-                currTags = currTags + '\n' + self.fldTags.value
-                self.tagList.value = currTags
-                logging.debug("Set currTags to " + currTags)
-            else:
-                currTags = self.fldTags.value
-                logging.debug("Set currTags to " + currTags)
-            
+        # If the tag does not exist in the database, add it.  Then update the tagList.
+                
+        if (arg is self.fldAttribs or arg is self.docNbr) and (len(self.fldTags.entry_widget.get_values()) > 0):
+            self.tagList.values.append(self.fldTags.entry_widget.get_values())
+            for itm in self.fldTags.entry_widget.get_values():
+                logging.debug("Appending item: " + itm)
             self.tagList.display()
+            self.fldTags.entry_widget.clear_values()
 
         pass
 
