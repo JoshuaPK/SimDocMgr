@@ -50,20 +50,30 @@ dbCur = dbConn.cursor()
 # SQL Queries:
 
 sqlLookupTags = 'SELECT tag_text FROM doc_tags WHERE tag_text LIKE ?'
+sqlInsertNewTag = "INSERT INTO doc_tags (tag_text, create_date) VALUES (?, date('now'))"
 
 # Code:
 
-class TagSelector(Autocomplete):
+class TagSelector(npyscreen.wgautocomplete.Autocomplete):
     def auto_complete(self, input):
 
-        global dbConn
+        global dbCur, dbConn, sqlLookupTags, sqlInsertNewTag
 
+        # Is this tag in the database?
+
+        locFldVal = self.value
+        locResult = dbCur.execute(sqlLookupTags, [locFldVal, ])
+
+        # If there are no results, add this to the database
+
+        dbCur.execute(sqlInsertNewTag, [locFldVal, ])
+        dbConn.commit()
 
         self.cursor_position=len(self.value)
 
         pass
 
-class TitleTagSelector(titlefield.TitleText):
+class TitleTagSelector(npyscreen.wgtitlefield.TitleText):
     _entry_type = TagSelector
 
 class SimDocApp(npyscreen.NPSApp):
@@ -71,8 +81,12 @@ class SimDocApp(npyscreen.NPSApp):
     def main(self):
 
         MF = npyscreen.Form(name = "SIMple DOCument ManaGeR")
-        fldTags = MF.add(npyscreen.Autocomplete, name = "Tags:", )
+        fldTags = MF.add(TitleTagSelector, name = "Tags:", )
         fldAttribs = MF.add(npyscreen.TitleText, name = "Attributes:", )
+        fldEffDt = MF.add(npyscreen.TitleDateCombo, name = "Effective Date:", )
+        tagsList = MF.add(npyscreen.TitlePager, name = "Current Tags:", )
+
+        MF.edit()
 
         pass
 
@@ -166,7 +180,9 @@ def displayUI():
 
 def doStuff():
 
-    scanPages(2, 'test_loc')
+    #scanPages(2, 'test_loc')
+    sdApp = SimDocApp()
+    sdApp.run()
 
     pass
 
