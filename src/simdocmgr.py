@@ -51,6 +51,11 @@ dbCur = dbConn.cursor()
 
 sqlLookupTags = "SELECT tag_text FROM doc_tags WHERE tag_text LIKE ? || '%'"
 sqlInsertNewTag = "INSERT INTO doc_tags (tag_text, create_date) VALUES (?, date('now'))"
+sqlInsertTagLink = "INSERT INTO n_docs_tags (doc_id, tag_id, date('now'))"
+
+sqlLookupAttribs = "SELECT attrib_name FROM doc_attributes WHERE attrib_name LIKE ? || '%'"
+sqlInsertNewAttrib = "INSERT INTO doc_attributes (attrib_name, attrib_value, create_date) VALUES (?, ?, date('now'))"
+sqlInsertNewAttribLink = "INSERT INTO n_docs_attribs (doc_id, attrib_id, create_date) VALUES (?, ?, date('now'))"
 
 # Code:
 
@@ -123,30 +128,26 @@ class AttributeSelector(npyscreen.wgautocomplete.Autocomplete):
     
     def auto_complete(self, input):
 
-        global dbCur, dbConn, sqlLookupTags, sqlInsertNewTag
+        global dbCur, dbConn, sqlLookupAttribs
         locTxtResList = []
 
         currValue = self.value[self.currValOffset:]
         
-        # Is this tag in the database?
+        # Is this attribute in the database?
 
         locFldSrchVal = currValue
-        logging.debug("Searching for the token " + locFldSrchVal)
+        logging.debug("Searching for the attribute token " + locFldSrchVal)
         locResult = dbCur.execute(sqlLookupTags, [locFldSrchVal, ])
         locFldResList = locResult.fetchall()
 
         for txtVal in locFldResList:
             locTxtResList.append(txtVal[0])
 
-        # If there are no results, add this to the database
+        currValue = str(locTxtResList[self.get_choice(locTxtResList)])
 
-        if len(locTxtResList) == 0:
-            logging.debug("Did not find " + currValue + ", adding it to the database")
-            dbCur.execute(sqlInsertNewTag, [locFldSrchVal, ])
-            dbConn.commit()
-        else:
-            # If there ARE results, present a chooser
-            currValue = str(locTxtResList[self.get_choice(locTxtResList)])
+        # currValue is the attribute name
+
+
 
         # Append this value to the list:
         self.valueList.append(currValue)
@@ -169,7 +170,6 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         self.sessFld = self.add(npyscreen.TitleFixedText, name = "Current Session:", )
         self.docNbr = self.add(npyscreen.TitleFixedText, name = "Document Number:", )
         self.fldTags = self.add(TitleTagSelector, name = "Tags:", )
-        #self.fldAttribs = self.add(npyscreen.TitleText, name = "Attributes:", )
         self.fldAttribs = self.add(TitleAttributeSelector, name = "Attributes:", )
         self.fldEffDt = self.add(npyscreen.TitleDateCombo, name = "Effective Date:", )
         self.fldNumPgs = self.add(npyscreen.TitleSlider, name = "Number of Pages:", out_of = 16)
