@@ -113,56 +113,6 @@ class TitleTagSelector(npyscreen.wgtitlefield.TitleText):
     _entry_type = TagSelector
 
 
-class AttributeSelector(npyscreen.wgautocomplete.Autocomplete):
-
-    valueList = []
-    currValOffset = 0
-    displayString = ''
-
-    def clear_values(self):
-        self.valueList = []
-        pass
-
-    def get_values(self):
-        return self.valueList
-    
-    def auto_complete(self, input):
-
-        global dbCur, dbConn, sqlLookupAttribs
-        locTxtResList = []
-
-        currValue = self.value[self.currValOffset:]
-        
-        # Is this attribute in the database?
-
-        locFldSrchVal = currValue
-        logging.debug("Searching for the attribute token " + locFldSrchVal)
-        locResult = dbCur.execute(sqlLookupTags, [locFldSrchVal, ])
-        locFldResList = locResult.fetchall()
-
-        for txtVal in locFldResList:
-            locTxtResList.append(txtVal[0])
-
-        currValue = str(locTxtResList[self.get_choice(locTxtResList)])
-
-        # currValue is the attribute name
-
-
-
-        # Append this value to the list:
-        self.valueList.append(currValue)
-
-        self.currValOffset = self.currValOffset + len (currValue) + 2
-        self.displayString = self.displayString + currValue + '; '
-        self.value = self.displayString
-        self.cursor_position=len(self.value)
-
-        pass
-
-class TitleAttributeSelector(npyscreen.wgtitlefield.TitleText):
-    __entry_type = AttributeSelector
-
-
 class ScannerSessionForm(npyscreen.FormBaseNew):
 
     def create(self):
@@ -170,7 +120,7 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         self.sessFld = self.add(npyscreen.TitleFixedText, name = "Current Session:", )
         self.docNbr = self.add(npyscreen.TitleFixedText, name = "Document Number:", )
         self.fldTags = self.add(TitleTagSelector, name = "Tags:", )
-        self.fldAttribs = self.add(TitleAttributeSelector, name = "Attributes:", )
+        self.fldAttribs = self.add(npyscreen.TitleText, name = "Attributes:", )
         self.fldEffDt = self.add(npyscreen.TitleDateCombo, name = "Effective Date:", )
         self.fldNumPgs = self.add(npyscreen.TitleSlider, name = "Number of Pages:", out_of = 16)
         self.tagList = self.add(npyscreen.TitlePager, name= "Current Tags:", )
