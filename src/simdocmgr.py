@@ -25,6 +25,7 @@ import tempfile
 import os
 import shutil
 import npyscreen
+from datetime import datetime
 
 # Config Values:
 
@@ -125,12 +126,15 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         self.fldNumPgs = self.add(npyscreen.TitleSlider, name = "Number of Pages:", out_of = 16)
         self.tagList = self.add(npyscreen.TitlePager, name= "Current Tags:", )
 
+        self.add_handlers({"^S": self.do_scan})
+
     def while_editing(self, arg):
 
         # If the tag does not exist in the database, add it.  Then update the tagList.
                 
         if (arg is self.fldAttribs or arg is self.docNbr) and (len(self.fldTags.entry_widget.get_values()) > 0):
-            self.tagList.values.append(self.fldTags.entry_widget.get_values())
+            for locVal in self.fldTags.entry_widget.get_values():
+                self.tagList.values.append(locVal)
             for itm in self.fldTags.entry_widget.get_values():
                 logging.debug("Appending item: " + itm)
             self.tagList.display()
@@ -138,11 +142,39 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
         pass
 
+    def do_scan(self, other_arg):
+
+        npyscreen.notify('I will scan!', 'Scan Dialog')
+        logging.debug("Control+S pressed, do_scan running")
+
+
+        pass
+
+
 class SimDocApp(npyscreen.NPSApp):
+
+    def __init__(self, options_dict = None):
+        self.current_session = ''
+        self.current_document_number = 1
+
+        if options_dict is not None:
+            # Must have been run from command line
+            logging.debug("In SimDocApp class __init__, there are options")
+
+        else:
+            logging.debug("In SimDocApp class __init__, no options")
+
+            pass
+
+        # Generate the session ID
+        sess_dt_part = datetime.now().strftime('%Y%m%d%H%M')
+        self.current_session = sess_dt_part
 
     def main(self):
 
         MF = ScannerSessionForm(name = "SIMple DOCument ManaGeR")
+        MF.sessFld.value = self.current_session
+        MF.docNbr.value = str(self.current_document_number)
 
         MF.edit()
 
@@ -153,10 +185,15 @@ class SimDocApp(npyscreen.NPSApp):
 
         pass
 
-    def waitForKey():
+
+    def scanDocument():
+        # Performs the document scanning and maintenance tasks.  Scans a document using the
+        # scanPages method, then resets all the form values and increments the document
+        # number, keeping the session number the same.
 
 
         pass
+
 
     def scanPages(nbrPages, outPath):
 
@@ -221,11 +258,6 @@ class SimDocApp(npyscreen.NPSApp):
 
     pass
 
-def displayUI():
-
-
-
-    pass
 
 def doStuff():
 
