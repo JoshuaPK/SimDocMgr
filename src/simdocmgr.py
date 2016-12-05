@@ -58,6 +58,11 @@ sqlLookupAttribs = "SELECT attrib_name FROM doc_attributes WHERE attrib_name LIK
 sqlInsertNewAttrib = "INSERT INTO doc_attributes (attrib_name, attrib_value, create_date) VALUES (?, ?, date('now'))"
 sqlInsertNewAttribLink = "INSERT INTO n_docs_attribs (doc_id, attrib_id, create_date) VALUES (?, ?, date('now'))"
 
+# Load Debugger:
+
+# from pudb.remote import set_trace
+# set_trace(term_size=(80,24))
+
 # Code:
 
 class TagSelector(npyscreen.wgautocomplete.Autocomplete):
@@ -72,14 +77,14 @@ class TagSelector(npyscreen.wgautocomplete.Autocomplete):
 
     def get_values(self):
         return self.valueList
-    
+
     def auto_complete(self, input):
 
         global dbCur, dbConn, sqlLookupTags, sqlInsertNewTag
         locTxtResList = []
 
         currValue = self.value[self.currValOffset:]
-        
+
         # Is this tag in the database?
 
         locFldSrchVal = currValue
@@ -131,7 +136,7 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
     def while_editing(self, arg):
 
         # If the tag does not exist in the database, add it.  Then update the tagList.
-                
+
         if (arg is self.fldAttribs or arg is self.docNbr) and (len(self.fldTags.entry_widget.get_values()) > 0):
             for locVal in self.fldTags.entry_widget.get_values():
                 self.tagList.values.append(locVal)
@@ -217,7 +222,9 @@ class SimDocApp(npyscreen.NPSApp):
             tmpFP = None
             tmpFN = None
 
-            waitForKey() 
+            # Need to create a callback mechanism here so that
+            # we can pause between pages if needed.
+            # waitForKey()
 
             pass
 
