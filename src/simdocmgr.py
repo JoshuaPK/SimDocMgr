@@ -123,13 +123,12 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
     def create(self):
 
-        self.sessFld = self.add(npyscreen.TitleFixedText, name = "Current Session:", )
-        self.docNbr = self.add(npyscreen.TitleFixedText, name = "Document Number:", )
+        self.sessFld = self.add(npyscreen.TitleFixedText, editable=False, name = "Current Session:", )
+        self.docNbr = self.add(npyscreen.TitleFixedText, editable=False, name = "Document Number:", )
         self.fldTags = self.add(TitleTagSelector, name = "Tags:", )
-        self.fldAttribs = self.add(npyscreen.TitleText, name = "Attributes:", )
         self.fldEffDt = self.add(npyscreen.TitleDateCombo, name = "Effective Date:", )
-        self.fldNumPgs = self.add(npyscreen.TitleSlider, name = "Number of Pages:", out_of = 16)
-        self.tagList = self.add(npyscreen.TitlePager, name= "Current Tags:", )
+        self.fldNumPgs = self.add(npyscreen.TitleSlider, name = "Number of Pages:", lowest = 1, out_of = 16,)
+        self.tagList = self.add(npyscreen.TitlePager, name= "Current Tags:", scroll_exit = True,  )
 
         self.add_handlers({"^S": self.do_scan})
 
@@ -137,7 +136,7 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
         # If the tag does not exist in the database, add it.  Then update the tagList.
 
-        if (arg is self.fldAttribs or arg is self.docNbr) and (len(self.fldTags.entry_widget.get_values()) > 0):
+        if (arg is self.fldEffDt) and (len(self.fldTags.entry_widget.get_values()) > 0):
             for locVal in self.fldTags.entry_widget.get_values():
                 self.tagList.values.append(locVal)
             for itm in self.fldTags.entry_widget.get_values():
@@ -149,9 +148,20 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
     def do_scan(self, other_arg):
 
-        npyscreen.notify('I will scan!', 'Scan Dialog')
+        locProceed = npyscreen.notify_ok_cancel('Scanning Now!', 'Scan Dialog')
         logging.debug("Control+S pressed, do_scan running")
 
+        locNumPgs = self.fldNumPgs.value
+
+        if locProceed:
+            locCurPage = 1
+            while True:
+                locDlgTxt = 'Scanning page ' + str(locCurPage) + ' of ' + str(locNumPgs)
+                locBxRetVal = npyscreen.notify_ok_cancel(locDlgTxt, 'Scan Dialog')
+                # Do Stuff
+                locCurPage = locCurPage + 1
+                if (locCurPage > self.fldNumPgs.value) or locBxRetVal is False:
+                    break
 
         pass
 
