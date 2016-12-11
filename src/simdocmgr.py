@@ -121,16 +121,24 @@ class TitleTagSelector(npyscreen.wgtitlefield.TitleText):
 
 class ScannerSessionForm(npyscreen.FormBaseNew):
 
+
     def create(self):
 
-        self.sessFld = self.add(npyscreen.TitleFixedText, editable=False, name = "Current Session:", )
-        self.docNbr = self.add(npyscreen.TitleFixedText, editable=False, name = "Document Number:", )
-        self.fldTags = self.add(TitleTagSelector, name = "Tags:", )
-        self.fldEffDt = self.add(npyscreen.TitleDateCombo, name = "Effective Date:", )
-        self.fldNumPgs = self.add(npyscreen.TitleSlider, name = "Number of Pages:", lowest = 1, out_of = 16,)
-        self.tagList = self.add(npyscreen.TitlePager, name= "Current Tags:", scroll_exit = True,  )
+        locHlpTxt = '^S: Scan; ^D: New Document; ^R: Import PDF; ^X: Exit'
+        self.hlpText = self.add(npyscreen.TitleFixedText, value=locHlpTxt, name = 'Shortcuts: ', editable=False, use_two_lines = False, )
+        self.sessFld = self.add(npyscreen.TitleFixedText, editable=False, name = 'Current Session: ', value = '0', use_two_lines = False, )
+        self.docNbr = self.add(npyscreen.TitleFixedText, editable=False, name = 'Document Number: ', value = '1', use_two_lines = False, )
+        self.fldTags = self.add(TitleTagSelector, name = 'Tags:', )
+        self.fldEffDt = self.add(npyscreen.TitleDateCombo, name = 'Effective Date:', )
+        self.fldNumPgs = self.add(npyscreen.TitleSlider, name = 'Number of Pages:', lowest = 1, out_of = 16,)
+        self.tagList = self.add(npyscreen.TitlePager, name= 'Current Tags:', scroll_exit = True,   )
+
+        self.fldNumPgs.value = 1
 
         self.add_handlers({"^S": self.do_scan})
+        self.add_handlers({"^D": self.new_document})
+        self.add_handlers({"^R": self.import_pdf})
+        self.add_handlers({"^X": self.exit_app})
 
     def while_editing(self, arg):
 
@@ -146,22 +154,68 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
         pass
 
+    def make_out_dir(self):
+        """Based on the current session ID, make the correct output directory.
+            Returns the full file path."""
+
+        global dataDir
+
+        locFullDir = os.path.abspath(dataDir + 'some-dir')
+
+        pass
+
+    def save_doc_info(self):
+        """Save the tags and effective date, if any, in the database"""
+
+
+
+        pass
+
+
+
     def do_scan(self, other_arg):
 
         locProceed = npyscreen.notify_ok_cancel('Scanning Now!', 'Scan Dialog')
         logging.debug("Control+S pressed, do_scan running")
 
-        locNumPgs = self.fldNumPgs.value
+        scanEngine = ScannerEngine()
+        locSession = self.sessFld.value
+        locDocNbr = self.docNbr.value
+
+        locNumPgs = int(self.fldNumPgs.value)
+        locOutDir = ''
 
         if locProceed:
-            locCurPage = 1
-            while True:
-                locDlgTxt = 'Scanning page ' + str(locCurPage) + ' of ' + str(locNumPgs)
-                locBxRetVal = npyscreen.notify_ok_cancel(locDlgTxt, 'Scan Dialog')
-                # Do Stuff
-                locCurPage = locCurPage + 1
-                if (locCurPage > self.fldNumPgs.value) or locBxRetVal is False:
-                    break
+            scanEngine.scanPages(locNumPgs, locOutDir)
+
+
+        pass
+
+    def new_document(self, other_arg):
+
+        locProceed = npyscreen.notify_ok_cancel('Create New Document?', 'Command Dialog', editw = 2)
+
+        if locProceed is False:
+            return
+
+        locDocNbr = int(self.docNbr.value)
+        locDocNbr = locDocNbr + 1
+        self.docNbr.value = str(locDocNbr)
+
+        # Do other stuff
+
+        self.DISPLAY()
+
+        pass
+
+    def import_pdf(self, other_arg):
+
+        # Do Stuff
+
+        pass
+
+    def exit_app(self, other_arg):
+
 
         pass
 
@@ -195,23 +249,31 @@ class SimDocApp(npyscreen.NPSApp):
 
         pass
 
-    def showError(errText):
+    def show_error(errText):
+
+
+        pass
+
+class ScannerEngine:
+
+    def import_pdf(inPath, outPath):
+        """Copies a PDF file to the data directory"""
+
+        cpString = inPath + ' ../' + outPath
+        logging.info("Copying file using args: " + cpString)
+
+        p = subprocess.Popen(['/usr/bin/cp', cpString], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cpOut, cpErr = p.communicate()
+        p = None
+
+        logging.info(cpOut)
+        logging.warning(cpErr)
 
 
         pass
 
 
-    def scanDocument():
-        # Performs the document scanning and maintenance tasks.  Scans a document using the
-        # scanPages method, then resets all the form values and increments the document
-        # number, keeping the session number the same.
-
-
-        pass
-
-
-    def scanPages(nbrPages, outPath):
-
+    def scan_pages(nbrPages, outPath):
         """ Scans nbrPages pages and combines them into a PDF with a temporary file name,
             then puts the pdf in outPath """
 
@@ -232,9 +294,8 @@ class SimDocApp(npyscreen.NPSApp):
             tmpFP = None
             tmpFN = None
 
-            # Need to create a callback mechanism here so that
-            # we can pause between pages if needed.
-            # waitForKey()
+            if i < nbrPages:
+                per_page_pause(i, nbrPages )
 
             pass
 
@@ -272,6 +333,16 @@ class SimDocApp(npyscreen.NPSApp):
         shutil.rmtree(tmpLoc)
 
     # All done!
+
+    pass
+
+
+def per_page_pause(locCurPg, locTotPgs):
+    """Displays a 'Press Key to Scan Next Page' box after each page scan is complete."""
+
+    locMsg = 'Press OK to scan page ' + str(locCurPg) + ' of ' + str(locTotPgs)
+    npyscreen.notify_confirm(locMsg, title='Message', editw=1)
+
 
     pass
 
