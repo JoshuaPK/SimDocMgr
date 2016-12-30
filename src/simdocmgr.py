@@ -4,6 +4,7 @@
 # Copyright 2016 Joshua Kramer
 
 # Process Flow:
+# (As of 31-DEC-2016 command line not supported)
 
 # To import existing PDF's into the database (must be in page order!)
 
@@ -25,6 +26,7 @@ import tempfile
 import os
 import shutil
 import npyscreen
+import getpass
 from datetime import datetime
 
 # Config Values:
@@ -46,6 +48,7 @@ logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', filename='.
 
 dbFile = dataDir + '/simdocmgr.db'
 dbConn = sqlite3.connect(dbFile)
+dbConn.isolation_level = None
 dbCur = dbConn.cursor()
 
 # SQL Queries:
@@ -53,6 +56,7 @@ dbCur = dbConn.cursor()
 sqlLookupTags = "SELECT tag_text FROM doc_tags WHERE tag_text LIKE ? || '%'"
 sqlInsertNewTag = "INSERT INTO doc_tags (tag_text, create_date) VALUES (?, date('now'))"
 sqlInsertTagLink = "INSERT INTO n_docs_tags (doc_id, tag_id, date('now'))"
+sqlInsertNewDoc = "INSERT INTO documents (doc_path, doc_filename, create_date, eff_date, create_user, doc_name) VALUES (?, ?, 'now', ?, ?, ?)"
 
 sqlLookupAttribs = "SELECT attrib_name FROM doc_attributes WHERE attrib_name LIKE ? || '%'"
 sqlInsertNewAttrib = "INSERT INTO doc_attributes (attrib_name, attrib_value, create_date) VALUES (?, ?, date('now'))"
@@ -126,11 +130,11 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
         locHlpTxt = '^S: Scan; ^D: New Document; ^R: Import PDF; ^X: Exit'
         self.hlpText = self.add(npyscreen.TitleFixedText, value=locHlpTxt, name = 'Shortcuts: ', editable=False, use_two_lines = False, )
-        self.sessFld = self.add(npyscreen.TitleFixedText, editable=False, name = 'Current Session: ', value = '0', use_two_lines = False, )
+        self.fldSess = self.add(npyscreen.TitleFixedText, editable=False, name = 'Current Session: ', value = '0', use_two_lines = False, )
         self.docNbr = self.add(npyscreen.TitleFixedText, editable=False, name = 'Document Number: ', value = '1', use_two_lines = False, )
         self.fldTags = self.add(TitleTagSelector, name = 'Tags:', )
-        self.fldEffDt = self.add(npyscreen.TitleDateCombo, name = 'Effective Date:', )
-        self.fldNumPgs = self.add(npyscreen.TitleSlider, name = 'Number of Pages:', lowest = 1, out_of = 16,)
+        self.fldEffDt = self.add(npyscreen.TitleDateCombo, name = 'Effective Date:', use_two_lines = False)
+        self.fldNumPgs = self.add(npyscreen.TitleSlider, name = 'Number of Pages:', lowest = 1, out_of = 16, use_two_lines = False)
         self.tagList = self.add(npyscreen.TitlePager, name= 'Current Tags:', scroll_exit = True,   )
 
         self.fldNumPgs.value = 1
@@ -160,7 +164,11 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
         global dataDir
 
-        locFullDir = os.path.abspath(dataDir + 'some-dir')
+        locFullDir = os.path.abspath(dataDir)
+        locDocDir = locFullDir + '/Documents/' + self.fldSess.value
+        os.mkdir(locDocDir)
+
+        return locDocDir
 
         pass
 
@@ -175,19 +183,61 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
     def do_scan(self, other_arg):
 
+        global dbCur, dbConn, sqlInsertTagLink, sqlInsertNewDoc, sqlInsertNewTag
+
+
         locProceed = npyscreen.notify_ok_cancel('Scanning Now!', 'Scan Dialog')
         logging.debug("Control+S pressed, do_scan running")
 
         scanEngine = ScannerEngine()
-        locSession = self.sessFld.value
+        locSession = self.fldSess.value
         locDocNbr = self.docNbr.value
 
         locNumPgs = int(self.fldNumPgs.value)
-        locOutDir = ''
+        locOutDir = self.make_out_dir()
 
         if locProceed:
-            scanEngine.scanPages(locNumPgs, locOutDir)
+            locDocFn = scanEngine.scanPages(locNumPgs, locOutDir)
 
+        # Put stuff in the database.
+
+        dbCur.execute('begin')
+
+        # Prepare document variables and insert document information
+
+        locDocPath = '../Documents/' + self.fldSess.value + '/'
+        locEffDate = self.fldEffDt.value
+
+        locDateObj = datetime.strptime(locEffDate, '%d %B, %Y').date()
+        locEffDate = locDateObj.strftime('%Y-%m-%d')
+        locDocName = locDocFn
+        locUser = getpass.getuser()
+
+        logging.debug('Inserting document record into database for ' + locDocName)
+
+        dbCur.execute(sqlInsertNewDoc, [locDocPath, locDocFn, locUser, locEffDate, locDocName,])
+        locDocId = dbCur.lastrowid
+
+        logging.debug('Document ID is ' + str(locDocId))
+
+        # Prepare tag variables
+
+        locTagList = self.tagList.values
+
+        for locTagVal in locTagList:
+
+            logging.debug('Inserting new Tag ' + locTagVal + ' for document id ' + str(locDocId))
+
+            dbCur.execute(sqlInsertNewTag, [locTagVal,])
+            locTagId = dbCur.lastrowid
+
+            logging.debug('Tag ID is ' + str(locTagId))
+            logging.debug('Inserting tag link for tag id ' + str(locTagId) + ' to document ID ' + str(locDocId))
+
+            dbCur.execute(sqlInsertTagLink, [locDocId, locTagId,])
+
+        logging.debug('Committing to database')
+        dbCur.execute('commit')
 
         pass
 
@@ -242,7 +292,7 @@ class SimDocApp(npyscreen.NPSApp):
     def main(self):
 
         MF = ScannerSessionForm(name = "SIMple DOCument ManaGeR")
-        MF.sessFld.value = self.current_session
+        MF.fldSess.value = self.current_session
         MF.docNbr.value = str(self.current_document_number)
 
         MF.edit()
@@ -273,11 +323,13 @@ class ScannerEngine:
         pass
 
 
-    def scan_pages(nbrPages, outPath):
+    def scan_pages(sessId, docNbr, nbrPages, outPath):
         """ Scans nbrPages pages and combines them into a PDF with a temporary file name,
-            then puts the pdf in outPath """
+            then renames the pdf to session_id+docNbr and puts it in in outPath """
 
-        global scanpagePrg, scanpageOpts, convertPrg, convertOps
+        global scanpagePrg, scanpageOpts, convertPrg, convertOps, dataDir
+        global dbCur, dbConn, sqlLookupTags, sqlInsertNewTag
+
 
         tmpLoc = tempfile.mkdtemp(dir=dataDir)
         os.chdir(tmpLoc)
@@ -316,9 +368,21 @@ class ScannerEngine:
         logging.warning(cvErr)
 
         # Now we should have a PDF in the data directory, if things worked as planned.
+        # Rename it appropriately.
+
+        newFn = sessID + '-d' + docNbr + '.pdf'
+        mvString = tmpFn + ' ' + newFn
+        p = subprocess.Popen(['/usr/bin/mv', mvString], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        mvOut, mvErr = p.communicate()
+        p = None
+
+        logging.info(mvOut)
+        logging.warning(mvErr)
+
+
         # Build the cpString- the command to copy the file to its final location.
 
-        cpString = tmpFN + ' ../' + outPath
+        cpString = newFN + ' ../' + outPath
         logging.info("Copying file using args: " + cpString)
 
         p = subprocess.Popen(['/usr/bin/cp', cpString], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -331,6 +395,8 @@ class ScannerEngine:
         # Now, remove the temp directory.
         os.chdir('..')
         shutil.rmtree(tmpLoc)
+
+        return newFn
 
     # All done!
 
@@ -347,7 +413,7 @@ def per_page_pause(locCurPg, locTotPgs):
     pass
 
 
-def doStuff():
+def do Stuff():
 
     #scanPages(2, 'test_loc')
     sdApp = SimDocApp()
