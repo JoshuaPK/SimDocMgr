@@ -114,6 +114,9 @@ class TagSelector(npyscreen.wgautocomplete.Autocomplete):
             dbConn.commit()
         else:
             # If there ARE results, present a chooser
+            locTxtResList.append('Return (Tag Not In List)')
+            locPosOfReturnTag = len(locTxtResList)
+            # TODO: Finish this way of exiting the list
             currValue = str(locTxtResList[self.get_choice(locTxtResList)])
 
         # Append this value to the list:
