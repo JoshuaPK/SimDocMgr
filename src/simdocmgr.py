@@ -24,7 +24,6 @@ import subprocess
 import sqlite3
 import tempfile
 import os
-import shutil
 import npyscreen
 import getpass
 from datetime import datetime
@@ -37,7 +36,7 @@ scanpageOpts = ''
 # Look here for opts:
 # http://www.wizards-toolkit.org/discourse-server/viewtopic.php?t=23225
 
-convertPrg = '/usr/bin/convert -limit memory 0 -limit map 0 *.tif -compress jpeg -quality 100'
+convertPrg = '/usr/bin/convert -limit memory 0 -limit map 0 *.tif -compress Zip -quality 100 -units PixelsPerInch -density 600'
 convertOpts = ''
 
 dataDir = '../data'
@@ -53,7 +52,7 @@ dbCur = dbConn.cursor()
 
 # SQL Queries:
 
-sqlLookupTags = "SELECT tag_text FROM doc_tags WHERE tag_text LIKE ? || '%'"
+sqlLookupTags = "SELECT DISTINCT tag_text FROM doc_tags WHERE tag_text LIKE ? || '%'"
 sqlInsertNewTag = "INSERT INTO doc_tags (tag_text, create_date) VALUES (?, date('now'))"
 sqlInsertTagLink = "INSERT INTO n_docs_tags (doc_id, tag_id, create_date) VALUES(?, ?, date('now'))"
 sqlInsertNewDoc = "INSERT INTO documents (doc_path, doc_filename, create_date, eff_date, create_user, doc_name) VALUES (?, ?, date('now'), ?, ?, ?)"
@@ -77,6 +76,8 @@ class TagSelector(npyscreen.wgautocomplete.Autocomplete):
 
     def clear_values(self):
         self.valueList = []
+        self.value = ''
+        self.displayString = ''
         pass
 
     def get_values(self):
@@ -154,7 +155,6 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
             for itm in self.fldTags.entry_widget.get_values():
                 logging.debug("Appending item: " + itm)
             self.tagList.display()
-            self.fldTags.entry_widget.clear_values()
 
         pass
 
@@ -166,19 +166,12 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
         locFullDir = os.path.abspath(dataDir)
         locDocDir = locFullDir + '/Documents/' + self.fldSess.value
-        os.mkdir(locDocDir)
+        if not os.path.exists(locDocDir):
+            os.mkdir(locDocDir)
 
         return locDocDir
 
         pass
-
-    def save_doc_info(self):
-        """Save the tags and effective date, if any, in the database"""
-
-
-
-        pass
-
 
 
     def do_scan(self, other_arg):
@@ -186,7 +179,7 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         global dbCur, dbConn, sqlInsertTagLink, sqlInsertNewDoc, sqlInsertNewTag
 
 
-        locProceed = npyscreen.notify_ok_cancel('Scanning Now!', 'Scan Dialog')
+        locProceed = npyscreen.notify_ok_cancel('Scanning Now!', 'Scan Dialog', editw = 2)
         logging.debug("Control+S pressed, do_scan running")
 
         scanEngine = ScannerEngine()
@@ -252,7 +245,11 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         locDocNbr = locDocNbr + 1
         self.docNbr.value = str(locDocNbr)
 
-        # Do other stuff
+        self.fldTags.entry_widget.clear_values()
+        self.fldTags.value = ''
+        self.fldEffDt.value = ''
+        self.fldNumPgs.value = 1
+        self.tagList.values = []
 
         self.DISPLAY()
 
@@ -265,6 +262,9 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         pass
 
     def exit_app(self, other_arg):
+
+        self.editing = False
+        self.while_editing(0)
 
 
         pass
@@ -373,7 +373,7 @@ class ScannerEngine:
         cvOut, cvErr = p.communicate()
         p = None
 
-        #logging.info(cvOut)
+        logging.info(cvOut)
         logging.warning(cvErr)
 
         # Now we should have a PDF in the data directory, if things worked as planned.
@@ -402,7 +402,7 @@ class ScannerEngine:
 
         # Now, remove the temp directory.
         os.chdir('..')
-        #shutil.rmtree(tmpLoc)
+        shutil.rmtree(tmpLoc)
 
         return newFn
 
