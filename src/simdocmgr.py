@@ -24,14 +24,20 @@ import subprocess
 import sqlite3
 import tempfile
 import os
+import re
 import npyscreen
+import shutil
 import getpass
 from datetime import datetime
 
 # Config Values:
 
-scanpagePrg = '/usr/bin/scanimage --device=genesys:libusb:002:010 --format=TIFF --mode=Gray'
+scanpagePrg = '/usr/bin/scanimage  --format=TIFF --mode=Gray'
 scanpageOpts = ''
+
+scannerListPrg = '/usr/bin/scanimage -L'
+chosenScanner = ''
+scannerDeviceRE = "^device `(.*)' is a.*"
 
 # Look here for opts:
 # http://www.wizards-toolkit.org/discourse-server/viewtopic.php?t=23225
@@ -124,8 +130,22 @@ class TitleTagSelector(npyscreen.wgtitlefield.TitleText):
     _entry_type = TagSelector
 
 
-class ScannerSessionForm(npyscreen.FormBaseNew):
+class ScannerChoosingForm(npyscreen.ActionFormMinimal):
 
+    def create(self):
+
+        scanEngine = ScannerEngine()
+        locScanListStr= scanEngine.find_scanners()
+        locScanList = locScanListStr.split('\n')
+        del locScanList[-1]
+
+        self.locScanPicker = self.add(npyscreen.TitleSelectOne, max_height=len(locScanList), name="Scanner:", values=locScanList, scroll_exit=True)
+
+        pass
+
+    pass
+
+class ScannerSessionForm(npyscreen.FormBaseNew):
 
     def create(self):
 
@@ -155,7 +175,7 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
             for itm in self.fldTags.entry_widget.get_values():
                 logging.debug("Appending item: " + itm)
             self.tagList.display()
-
+            self.fldTags.entry_widget.clear_values()
         pass
 
     def make_out_dir(self):
@@ -291,6 +311,24 @@ class SimDocApp(npyscreen.NPSApp):
 
     def main(self):
 
+        global chosenScanner, scannerDeviceRE
+
+        print('Finding scanners...')
+
+        CF = ScannerChoosingForm(name = "Please Pick a Scanner")
+        CF.edit()
+
+        reObj = re.compile(scannerDeviceRE)
+
+        chosenScanner = CF.locScanPicker.get_selected_objects()
+        logging.info('Scanner chosen: ' + chosenScanner[0])
+
+        reResult = reObj.match(chosenScanner[0])
+        reResultStr = reResult.group(1)
+        chosenScanner = reResultStr
+
+        logging.info('Scanner Name: ' + reResultStr)
+
         MF = ScannerSessionForm(name = "SIMple DOCument ManaGeR")
         MF.fldSess.value = self.current_session
         MF.docNbr.value = str(self.current_document_number)
@@ -328,7 +366,7 @@ class ScannerEngine:
             then renames the pdf to session_id+docNbr and puts it in in outPath """
 
         global scanpagePrg, scanpageOpts, convertPrg, convertOps, dataDir
-        global dbCur, dbConn, sqlLookupTags, sqlInsertNewTag
+        global dbCur, dbConn, sqlLookupTags, sqlInsertNewTag, chosenScanner
 
 
         tmpLoc = tempfile.mkdtemp(dir=dataDir)
@@ -339,9 +377,12 @@ class ScannerEngine:
 
         logging.info('Number of pages: ' + str(nbrPages))
 
+        locScanpagePrgLst = scanpagePrg.split()
+        locScanpagePrgLst.append('--device=' + chosenScanner )
+
         for i in range(1, nbrPages + 1):
             logging.info('Running scanpage: ' + scanpagePrg + ' ' + scanpageOpts)
-            p = subprocess.Popen(scanpagePrg.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(locScanpagePrgLst, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             spOut, spErr = p.communicate()
             tmpFP, tmpFN = tempfile.mkstemp(suffix='.tif',text=False, dir=tmpLoc)
             logging.info('Scanned page ' + str(i) + ' into file ' + tmpFN)
@@ -409,6 +450,23 @@ class ScannerEngine:
     # All done!
 
     pass
+
+    def find_scanners(self):
+
+        global scannerListPrg
+
+        logging.info('Looking for scanners')
+
+        p = subprocess.Popen(scannerListPrg.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        locOut, locErr = p.communicate()
+        p = None
+
+        logging.info('Found Scanners:')
+        logging.info(locOut)
+
+        return locOut
+
+        pass
 
 
 def per_page_pause(locCurPg, locTotPgs):
