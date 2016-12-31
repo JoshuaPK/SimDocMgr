@@ -31,14 +31,14 @@ from datetime import datetime
 
 # Config Values:
 
-scanpagePrg = '/usr/bin/scanimage'
-scanpageOpts = '--format=TIFF --mode=Gray'
+scanpagePrg = '/usr/bin/scanimage --device=genesys:libusb:002:010 --format=TIFF --mode=Gray'
+scanpageOpts = ''
 
 # Look here for opts:
 # http://www.wizards-toolkit.org/discourse-server/viewtopic.php?t=23225
 
-convertPrg = '/usr/bin/convert'
-convertOpts = 'options'
+convertPrg = '/usr/bin/convert -limit memory 0 -limit map 0 *.tif -compress jpeg -quality 100'
+convertOpts = ''
 
 dataDir = '../data'
 
@@ -55,8 +55,8 @@ dbCur = dbConn.cursor()
 
 sqlLookupTags = "SELECT tag_text FROM doc_tags WHERE tag_text LIKE ? || '%'"
 sqlInsertNewTag = "INSERT INTO doc_tags (tag_text, create_date) VALUES (?, date('now'))"
-sqlInsertTagLink = "INSERT INTO n_docs_tags (doc_id, tag_id, date('now'))"
-sqlInsertNewDoc = "INSERT INTO documents (doc_path, doc_filename, create_date, eff_date, create_user, doc_name) VALUES (?, ?, 'now', ?, ?, ?)"
+sqlInsertTagLink = "INSERT INTO n_docs_tags (doc_id, tag_id, create_date) VALUES(?, ?, date('now'))"
+sqlInsertNewDoc = "INSERT INTO documents (doc_path, doc_filename, create_date, eff_date, create_user, doc_name) VALUES (?, ?, date('now'), ?, ?, ?)"
 
 sqlLookupAttribs = "SELECT attrib_name FROM doc_attributes WHERE attrib_name LIKE ? || '%'"
 sqlInsertNewAttrib = "INSERT INTO doc_attributes (attrib_name, attrib_value, create_date) VALUES (?, ?, date('now'))"
@@ -197,7 +197,7 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         locOutDir = self.make_out_dir()
 
         if locProceed:
-            locDocFn = scanEngine.scanPages(locNumPgs, locOutDir)
+            locDocFn = scanEngine.scan_pages(locSession, locDocNbr, locNumPgs, locOutDir)
 
         # Put stuff in the database.
 
@@ -206,9 +206,9 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         # Prepare document variables and insert document information
 
         locDocPath = '../Documents/' + self.fldSess.value + '/'
-        locEffDate = self.fldEffDt.value
+        locDateObj = self.fldEffDt.value
 
-        locDateObj = datetime.strptime(locEffDate, '%d %B, %Y').date()
+        #locDateObj = datetime.strptime(locEffDate, '%d %B, %Y').date()
         locEffDate = locDateObj.strftime('%Y-%m-%d')
         locDocName = locDocFn
         locUser = getpass.getuser()
@@ -306,7 +306,7 @@ class SimDocApp(npyscreen.NPSApp):
 
 class ScannerEngine:
 
-    def import_pdf(inPath, outPath):
+    def import_pdf(self, inPath, outPath):
         """Copies a PDF file to the data directory"""
 
         cpString = inPath + ' ../' + outPath
@@ -323,7 +323,7 @@ class ScannerEngine:
         pass
 
 
-    def scan_pages(sessId, docNbr, nbrPages, outPath):
+    def scan_pages(self, sessId, docNbr, nbrPages, outPath):
         """ Scans nbrPages pages and combines them into a PDF with a temporary file name,
             then renames the pdf to session_id+docNbr and puts it in in outPath """
 
@@ -332,13 +332,19 @@ class ScannerEngine:
 
 
         tmpLoc = tempfile.mkdtemp(dir=dataDir)
+        tmpLoc = os.path.abspath(tmpLoc)
         os.chdir(tmpLoc)
 
-        for i in range(1, nbrPages):
-            p = subprocess.Popen([scanpagePrg, scanpageOpts], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        logging.info('tmpLoc is ' + tmpLoc)
+
+        logging.info('Number of pages: ' + str(nbrPages))
+
+        for i in range(1, nbrPages + 1):
+            logging.info('Running scanpage: ' + scanpagePrg + ' ' + scanpageOpts)
+            p = subprocess.Popen(scanpagePrg.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             spOut, spErr = p.communicate()
-            tmpFP, tmpFN = tempfile.mkstemp(suffix='.tif',text=False)
-            logging.info('Scanning page ' + str(i) + ' into file ' + tmpFN)
+            tmpFP, tmpFN = tempfile.mkstemp(suffix='.tif',text=False, dir=tmpLoc)
+            logging.info('Scanned page ' + str(i) + ' into file ' + tmpFN)
             os.write(tmpFP, spOut)
             os.close(tmpFP)
             logging.warning(spErr)
@@ -355,37 +361,39 @@ class ScannerEngine:
 
         logging.info("Gluing together PDF's")
 
-        tmpFP, tmpFN = tempfile.mkstemp()
+        tmpFP, tmpFN = tempfile.mkstemp(dir=tmpLoc)
         os.close(tmpFP)
         tmpFN = tmpFN + '.pdf'
         logging.info("Created filename for PDF: " + tmpFN)
 
-        p = subprocess.Popen([convertPrg, convertOpts], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        convertPrgList = convertPrg.split()
+        convertPrgList.append(tmpFN)
+
+        p = subprocess.Popen(convertPrgList, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cvOut, cvErr = p.communicate()
         p = None
 
-        logging.info(cvOut)
+        #logging.info(cvOut)
         logging.warning(cvErr)
 
         # Now we should have a PDF in the data directory, if things worked as planned.
         # Rename it appropriately.
 
-        newFn = sessID + '-d' + docNbr + '.pdf'
-        mvString = tmpFn + ' ' + newFn
-        p = subprocess.Popen(['/usr/bin/mv', mvString], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        newFn = sessId + '-d' + docNbr + '.pdf'
+        mvString = '/usr/bin/mv ' + tmpFN + ' ' + newFn
+        p = subprocess.Popen(mvString.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         mvOut, mvErr = p.communicate()
         p = None
 
         logging.info(mvOut)
         logging.warning(mvErr)
 
-
         # Build the cpString- the command to copy the file to its final location.
 
-        cpString = newFN + ' ../' + outPath
+        cpString = '/usr/bin/cp ' + newFn + ' ' + outPath
         logging.info("Copying file using args: " + cpString)
 
-        p = subprocess.Popen(['/usr/bin/cp', cpString], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cpString.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cpOut, cpErr = p.communicate()
         p = None
 
@@ -394,7 +402,7 @@ class ScannerEngine:
 
         # Now, remove the temp directory.
         os.chdir('..')
-        shutil.rmtree(tmpLoc)
+        #shutil.rmtree(tmpLoc)
 
         return newFn
 
@@ -413,7 +421,7 @@ def per_page_pause(locCurPg, locTotPgs):
     pass
 
 
-def do Stuff():
+def doStuff():
 
     #scanPages(2, 'test_loc')
     sdApp = SimDocApp()
