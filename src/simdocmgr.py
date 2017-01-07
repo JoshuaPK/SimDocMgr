@@ -115,9 +115,18 @@ class TagSelector(npyscreen.wgautocomplete.Autocomplete):
         else:
             # If there ARE results, present a chooser
             locTxtResList.append('Return (Tag Not In List)')
-            locPosOfReturnTag = len(locTxtResList)
-            # TODO: Finish this way of exiting the list
-            currValue = str(locTxtResList[self.get_choice(locTxtResList)])
+            locPosOfReturnTag = len(locTxtResList) - 1
+            logging.debug('locPosOfReturnTag = ' + str(locPosOfReturnTag))
+            locValIndex = self.get_choice(locTxtResList)
+            logging.debug('locValIndex = ' + str(locValIndex))
+            # If we did not select the "get out of this menu" option, get the option we
+            # did select.  If we did select that option, save to the database and add to
+            # the list
+            if locValIndex != locPosOfReturnTag:
+                currValue = str(locTxtResList[locValIndex])
+            else:
+                dbCur.execute(sqlInsertNewTag, [currValue, ])
+                dbConn.commit()
 
         # Append this value to the list:
         self.valueList.append(currValue)
@@ -142,7 +151,14 @@ class ScannerChoosingForm(npyscreen.ActionFormMinimal):
         locScanList = locScanListStr.split('\n')
         del locScanList[-1]
 
-        self.locScanPicker = self.add(npyscreen.TitleSelectOne, max_height=len(locScanList), name="Scanner:", values=locScanList, scroll_exit=True)
+        # If there is only one scanner...
+        if len(locScanList) == 1:
+            self.OnlyOneScanner = locScanList[0]
+            logging.debug('There is only one scanner in the list: ' + str(self.OnlyOneScanner))
+        else:
+            self.OnlyOneScanner = None
+            logging.debug('Displaying the list, there is more than one scanner')
+            self.locScanPicker = self.add(npyscreen.TitleSelectOne, max_height=len(locScanList), name="Scanner:", values=locScanList, scroll_exit=True)
 
         pass
 
@@ -319,14 +335,19 @@ class SimDocApp(npyscreen.NPSApp):
         print('Finding scanners...')
 
         CF = ScannerChoosingForm(name = "Please Pick a Scanner")
-        CF.edit()
+
+        if CF.OnlyOneScanner is None:
+            CF.edit()
+            chosenScannerItem = CF.locScanPicker.get_selected_objects()
+            chosenScanner = chosenScannerItem[0]
+        else:
+            chosenScanner = CF.OnlyOneScanner
 
         reObj = re.compile(scannerDeviceRE)
 
-        chosenScanner = CF.locScanPicker.get_selected_objects()
-        logging.info('Scanner chosen: ' + chosenScanner[0])
+        logging.info('Scanner chosen: ' + chosenScanner)
 
-        reResult = reObj.match(chosenScanner[0])
+        reResult = reObj.match(chosenScanner)
         reResultStr = reResult.group(1)
         chosenScanner = reResultStr
 
@@ -452,7 +473,7 @@ class ScannerEngine:
 
     # All done!
 
-    pass
+        pass
 
     def find_scanners(self):
 
