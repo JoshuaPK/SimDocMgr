@@ -219,6 +219,10 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
 
         locProceed = npyscreen.notify_ok_cancel('Scanning Now!', 'Scan Dialog', editw = 2)
+
+        if locProceed == False:
+            return
+
         logging.debug("Control+S pressed, do_scan running")
 
         scanEngine = ScannerEngine()
