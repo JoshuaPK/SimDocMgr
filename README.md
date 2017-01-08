@@ -8,11 +8,11 @@ As of 08-JAN-2017, SimDocMgr consists of a simple console interface based on npy
 
 ### First Run
 
-	1. Create a virtualenv and put the src, log, and data directories under it.
-	2. Activate the virtualenv and pip install npyscreen.
-	3. Make sure you have the command line tools for ImageMagick and sane-backends.
-	4. Create the sqlite3 database.
-	5. Go into src and run python ./simdocmgr.py
+1. Create a virtualenv and put the src, log, and data directories under it.
+2. Activate the virtualenv and pip install npyscreen.
+3. Make sure you have the command line tools for ImageMagick and sane-backends.
+4. Create the sqlite3 database.
+5. Go into src and run python ./simdocmgr.py
 
 ### Data Structure
 
@@ -34,9 +34,14 @@ You can also choose the Effective Date of the document, as well as the number of
 
 ## Roadmap
 
-	1. Write a GUI program to retrieve the documents.  (This is planned to be written using pyQt.)
-	2. Add the 'Import PDF' functionality so that we can import documents that are already PDFs.
-	3. Properly handle multipage/document fed scanners.
-	4. Integrate pyOCR so that you can scan all your documents to one PDF, and SimDocMgr will go into the PDF, splitting and tagging documents as required.
-	5. Provide scanner controls.  Some scanners have more capabilities than others, and it would be nice to control those settings within the UI.
-	6. Make the scanning application into a GUI instead of npyscreen.
+1. Write a GUI program to retrieve the documents.  (This is planned to be written using pyQt.)
+2. Add the 'Import PDF' functionality so that we can import documents that are already PDFs.
+3. Properly handle multipage/document fed scanners.
+4. Integrate pyOCR so that you can scan all your documents to one PDF, and SimDocMgr will go into the PDF, splitting and tagging documents as required.
+5. Provide scanner controls.  Some scanners have more capabilities than others, and it would be nice to control those settings within the UI.
+6. Make the scanning application into a GUI instead of npyscreen.
+
+## License
+
+GNU GPL v2.0
+
