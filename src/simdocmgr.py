@@ -25,6 +25,7 @@ import sqlite3
 import tempfile
 import os
 import re
+import sys
 import npyscreen
 import shutil
 import getpass
@@ -67,7 +68,11 @@ sqlLookupAttribs = "SELECT attrib_name FROM doc_attributes WHERE attrib_name LIK
 sqlInsertNewAttrib = "INSERT INTO doc_attributes (attrib_name, attrib_value, create_date) VALUES (?, ?, date('now'))"
 sqlInsertNewAttribLink = "INSERT INTO n_docs_attribs (doc_id, attrib_id, create_date) VALUES (?, ?, date('now'))"
 
-# Load Debugger:
+# Load Debugger: what a mess!
+
+#sys.path.append('/home/josh/dev/ide/eclipse-neon/plugins/org.python.pydev_5.4.0.201611281236/pysrc')
+#import pydevd;pydevd.settrace()
+#os.environ['TERM'] = 'xterm'
 
 # from pudb.remote import set_trace
 # set_trace(term_size=(80,24))
@@ -82,6 +87,7 @@ class TagSelector(npyscreen.wgautocomplete.Autocomplete):
 
     def clear_values(self):
         self.valueList = []
+        self.currValOffset = 0
         self.value = ''
         self.displayString = ''
         pass
