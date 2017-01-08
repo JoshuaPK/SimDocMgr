@@ -33,7 +33,11 @@ from datetime import datetime
 
 # Config Values:
 
-scanpagePrg = '/usr/bin/scanimage  --format=TIFF --mode=Gray'
+# For the Canon Lide35, a yellow carbon has a good threshold of 27.
+#scanpagePrg = '/usr/bin/scanimage  --format=TIFF --mode=Lineart --resolution=300 --threshold=27'
+
+# For the Epson CX7400, Threshold is not an allowable option for Lineart.
+scanpagePrg = '/usr/bin/scanimage  --format=TIFF --mode=Lineart --resolution=300'
 scanpageOpts = ''
 
 scannerListPrg = '/usr/bin/scanimage -L'
@@ -43,7 +47,7 @@ scannerDeviceRE = "^device `(.*)' is a.*"
 # Look here for opts:
 # http://www.wizards-toolkit.org/discourse-server/viewtopic.php?t=23225
 
-convertPrg = '/usr/bin/convert -limit memory 0 -limit map 0 *.tif -compress Zip -quality 100 -units PixelsPerInch -density 600'
+convertPrg = '/usr/bin/convert -limit memory 0 -limit map 0 *.tif -compress Zip -quality 100 -units PixelsPerInch -density 300'
 convertOpts = ''
 
 dataDir = '../data'
@@ -311,6 +315,7 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
     def import_pdf(self, other_arg):
 
         # Do Stuff
+        npyscreen.notify_ok_cancel('This feature not implemented yet.', 'Import PDF', editw=2)
 
         pass
 
