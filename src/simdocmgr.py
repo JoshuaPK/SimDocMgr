@@ -238,10 +238,14 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         # Prepare document variables and insert document information
 
         locDocPath = '../Documents/' + self.fldSess.value + '/'
-        locDateObj = self.fldEffDt.value
+        locDateFldObj = self.fldEffDt.value
 
-        #locDateObj = datetime.strptime(locEffDate, '%d %B, %Y').date()
-        locEffDate = locDateObj.strftime('%Y-%m-%d')
+        #locDateObj = datetime.strptime(locDateFldObj, '%d %B, %Y').date()
+        if isinstance(locDateFldObj, datetime):
+            locEffDate = locDateFldObj.strftime('%Y-%m-%d')
+        else:
+            locEffDate = ''
+
         locDocName = locDocFn
         locUser = getpass.getuser()
 
@@ -361,7 +365,7 @@ class SimDocApp(npyscreen.NPSApp):
 
         pass
 
-    def show_error(errText):
+    def show_error(self, errText):
 
 
         pass
