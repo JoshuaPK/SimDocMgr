@@ -94,7 +94,6 @@ class TagSelector(npyscreen.wgautocomplete.Autocomplete):
         self.currValOffset = 0
         self.value = ''
         self.displayString = ''
-        pass
 
     def get_values(self):
         return self.valueList
@@ -146,7 +145,6 @@ class TagSelector(npyscreen.wgautocomplete.Autocomplete):
         self.value = self.displayString
         self.cursor_position=len(self.value)
 
-        pass
 
 class TitleTagSelector(npyscreen.wgtitlefield.TitleText):
     _entry_type = TagSelector
@@ -170,9 +168,6 @@ class ScannerChoosingForm(npyscreen.ActionFormMinimal):
             logging.debug('Displaying the list, there is more than one scanner')
             self.locScanPicker = self.add(npyscreen.TitleSelectOne, max_height=len(locScanList), name="Scanner:", values=locScanList, scroll_exit=True)
 
-        pass
-
-    pass
 
 class ScannerSessionForm(npyscreen.FormBaseNew):
 
@@ -205,7 +200,6 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
                 logging.debug("Appending item: " + itm)
             self.tagList.display()
             self.fldTags.entry_widget.clear_values()
-        pass
 
     def make_out_dir(self):
         """Based on the current session ID, make the correct output directory.
@@ -219,9 +213,6 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
             os.mkdir(locDocDir)
 
         return locDocDir
-
-        pass
-
 
     def do_scan(self, other_arg):
 
@@ -289,8 +280,6 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         logging.debug('Committing to database')
         dbCur.execute('commit')
 
-        pass
-
     def new_document(self, other_arg):
 
         locProceed = npyscreen.notify_ok_cancel('Create New Document?', 'Command Dialog', editw = 2)
@@ -310,22 +299,15 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
         self.DISPLAY()
 
-        pass
-
     def import_pdf(self, other_arg):
 
         # Do Stuff
         npyscreen.notify_ok_cancel('This feature not implemented yet.', 'Import PDF', editw=2)
 
-        pass
-
     def exit_app(self, other_arg):
 
         self.editing = False
         self.while_editing(0)
-
-
-        pass
 
 
 class SimDocApp(npyscreen.NPSApp):
@@ -340,8 +322,6 @@ class SimDocApp(npyscreen.NPSApp):
 
         else:
             logging.debug("In SimDocApp class __init__, no options")
-
-            pass
 
         # Generate the session ID
         sess_dt_part = datetime.now().strftime('%Y%m%d%H%M')
@@ -378,12 +358,9 @@ class SimDocApp(npyscreen.NPSApp):
 
         MF.edit()
 
-        pass
-
     def show_error(self, errText):
-
-
         pass
+
 
 class ScannerEngine:
 
@@ -399,10 +376,6 @@ class ScannerEngine:
 
         logging.info(cpOut)
         logging.warning(cpErr)
-
-
-        pass
-
 
     def scan_pages(self, sessId, docNbr, nbrPages, outPath):
         """ Scans nbrPages pages and combines them into a PDF with a temporary file name,
@@ -438,8 +411,6 @@ class ScannerEngine:
 
             if i < nbrPages:
                 per_page_pause(i, nbrPages )
-
-            pass
 
         # Now we use ImageMagick to glue all of the tiff files together into a pdf.
 
@@ -490,10 +461,6 @@ class ScannerEngine:
 
         return newFn
 
-    # All done!
-
-        pass
-
     def find_scanners(self):
 
         global scannerListPrg
@@ -509,8 +476,6 @@ class ScannerEngine:
 
         return locOut
 
-        pass
-
 
 def per_page_pause(locCurPg, locTotPgs):
     """Displays a 'Press Key to Scan Next Page' box after each page scan is complete."""
@@ -519,20 +484,11 @@ def per_page_pause(locCurPg, locTotPgs):
     npyscreen.notify_confirm(locMsg, title='Message', editw=1)
 
 
-    pass
-
-
 def doStuff():
-
     #scanPages(2, 'test_loc')
     sdApp = SimDocApp()
     sdApp.run()
 
-    pass
 
 if __name__ == '__main__':
-
-
     doStuff()
-
-    pass
