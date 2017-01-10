@@ -246,9 +246,9 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         locDateFldObj = self.fldEffDt.value
 
         #locDateObj = datetime.strptime(locDateFldObj, '%d %B, %Y').date()
-        if isinstance(locDateFldObj, datetime):
+        try:
             locEffDate = locDateFldObj.strftime('%Y-%m-%d')
-        else:
+        except AttributeError:
             locEffDate = ''
 
         locDocName = locDocFn
