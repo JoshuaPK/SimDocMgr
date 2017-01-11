@@ -367,10 +367,13 @@ class ScannerEngine:
     def import_pdf(self, inPath, outPath):
         """Copies a PDF file to the data directory"""
 
-        cpString = inPath + ' ../' + outPath
-        logging.info("Copying file using args: " + cpString)
-
-        p = subprocess.Popen(['/usr/bin/cp', cpString], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        destination_path = os.path.join('..', outPath)
+        logging.info(
+            'Copying file using args: %s %s' %
+            (inPath, destination_path))
+        command = ['/usr/bin/cp', inPath, destination_path]
+        p = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cpOut, cpErr = p.communicate()
         p = None
 
