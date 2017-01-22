@@ -233,8 +233,7 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         locNumPgs = int(self.fldNumPgs.value)
         locOutDir = self.make_out_dir()
 
-        if locProceed:
-            locDocFn = scanEngine.scan_pages(locSession, locDocNbr, locNumPgs, locOutDir)
+        locDocFn = scanEngine.scan_pages(locSession, locDocNbr, locNumPgs, locOutDir)
 
         # Put stuff in the database.
 
@@ -288,7 +287,7 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
             return
 
         locDocNbr = int(self.docNbr.value)
-        locDocNbr = locDocNbr + 1
+        locDocNbr += 1
         self.docNbr.value = str(locDocNbr)
 
         self.fldTags.entry_widget.clear_values()
@@ -403,7 +402,7 @@ class ScannerEngine:
             logging.info('Running scanpage: ' + scanpagePrg + ' ' + scanpageOpts)
             p = subprocess.Popen(locScanpagePrgLst, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             spOut, spErr = p.communicate()
-            tmpFP, tmpFN = tempfile.mkstemp(suffix='.tif',text=False, dir=tmpLoc)
+            tmpFP, tmpFN = tempfile.mkstemp(prefix = str(i) + '_', suffix='.tif',text=False, dir=tmpLoc)
             logging.info('Scanned page ' + str(i) + ' into file ' + tmpFN)
             os.write(tmpFP, spOut)
             os.close(tmpFP)
@@ -413,7 +412,7 @@ class ScannerEngine:
             tmpFN = None
 
             if i < nbrPages:
-                per_page_pause(i, nbrPages )
+                per_page_pause(i + 1, nbrPages )
 
         # Now we use ImageMagick to glue all of the tiff files together into a pdf.
 
@@ -480,10 +479,10 @@ class ScannerEngine:
         return locOut
 
 
-def per_page_pause(locCurPg, locTotPgs):
+def per_page_pause(locNextPg, locTotPgs):
     """Displays a 'Press Key to Scan Next Page' box after each page scan is complete."""
 
-    locMsg = 'Press OK to scan page ' + str(locCurPg) + ' of ' + str(locTotPgs)
+    locMsg = 'Press OK to scan page ' + str(locNextPg) + ' of ' + str(locTotPgs)
     npyscreen.notify_confirm(locMsg, title='Message', editw=1)
 
 
