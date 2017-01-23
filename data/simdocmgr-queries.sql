@@ -13,5 +13,5 @@ from
 inner join n_docs_tags ndt on ndt.tag_id = dt.rowid
 inner join documents d on d.rowid = ndt.doc_id
 where
-    dt.tag_text like 'Home%';
+    dt.tag_text = 'costco';
 

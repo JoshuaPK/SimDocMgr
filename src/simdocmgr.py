@@ -179,7 +179,7 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
         self.docNbr = self.add(npyscreen.TitleFixedText, editable=False, name = 'Document Number: ', value = '1', use_two_lines = False, )
         self.fldTags = self.add(TitleTagSelector, name = 'Tags:', )
         self.fldEffDt = self.add(npyscreen.TitleDateCombo, name = 'Effective Date:', use_two_lines = False)
-        self.fldNumPgs = self.add(npyscreen.TitleSlider, name = 'Number of Pages:', lowest = 1, out_of = 16, use_two_lines = False)
+        self.fldNumPgs = self.add(npyscreen.TitleSlider, name = 'Number of Pages:', lowest = 1, out_of = 32, use_two_lines = False)
         self.tagList = self.add(npyscreen.TitlePager, name= 'Current Tags:', scroll_exit = True,   )
 
         self.fldNumPgs.value = 1
