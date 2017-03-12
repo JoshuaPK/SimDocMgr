@@ -398,11 +398,14 @@ class ScannerEngine:
         locScanpagePrgLst = scanpagePrg.split()
         locScanpagePrgLst.append('--device=' + chosenScanner )
 
+        locTfPfx = ''
+
         for i in range(1, nbrPages + 1):
             logging.info('Running scanpage: ' + scanpagePrg + ' ' + scanpageOpts)
             p = subprocess.Popen(locScanpagePrgLst, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             spOut, spErr = p.communicate()
-            tmpFP, tmpFN = tempfile.mkstemp(prefix = str(i) + '_', suffix='.tif',text=False, dir=tmpLoc)
+            locTfPfx = "{0:0>3}".format(i)
+            tmpFP, tmpFN = tempfile.mkstemp(prefix = locTfPfx + '_', suffix='.tif',text=False, dir=tmpLoc)
             logging.info('Scanned page ' + str(i) + ' into file ' + tmpFN)
             os.write(tmpFP, spOut)
             os.close(tmpFP)
