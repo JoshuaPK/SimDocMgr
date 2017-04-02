@@ -33,6 +33,8 @@ from datetime import datetime
 
 # Config Values:
 
+BUILD_DATE = '02-APR-2017'
+
 # For the Canon Lide35, a yellow carbon has a good threshold of 27.
 #scanpagePrg = '/usr/bin/scanimage  --format=TIFF --mode=Lineart --resolution=300 --threshold=27'
 
@@ -173,7 +175,9 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
     def create(self):
 
+        global chosenScanner
         locHlpTxt = '^S: Scan; ^D: New Document; ^R: Import PDF; ^X: Exit'
+        self.scnText = self.add(npyscreen.TitleFixedText, value=chosenScanner, name = 'Scanner: ', editable=False, use_two_lines = False,)
         self.hlpText = self.add(npyscreen.TitleFixedText, value=locHlpTxt, name = 'Shortcuts: ', editable=False, use_two_lines = False, )
         self.fldSess = self.add(npyscreen.TitleFixedText, editable=False, name = 'Current Session: ', value = '0', use_two_lines = False, )
         self.docNbr = self.add(npyscreen.TitleFixedText, editable=False, name = 'Document Number: ', value = '1', use_two_lines = False, )
@@ -328,7 +332,7 @@ class SimDocApp(npyscreen.NPSApp):
 
     def main(self):
 
-        global chosenScanner, scannerDeviceRE
+        global chosenScanner, scannerDeviceRE, BUILD_DATE
 
         print('Finding scanners...')
 
@@ -351,7 +355,7 @@ class SimDocApp(npyscreen.NPSApp):
 
         logging.info('Scanner Name: ' + reResultStr)
 
-        MF = ScannerSessionForm(name = "SIMple DOCument ManaGeR")
+        MF = ScannerSessionForm(name = "SIMple DOCument ManaGeR Build " + BUILD_DATE)
         MF.fldSess.value = self.current_session
         MF.docNbr.value = str(self.current_document_number)
 
