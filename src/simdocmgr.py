@@ -20,7 +20,7 @@
 # Then enter the number of pages, attribute:value pairs, and tags
 
 import logging
-import subprocess
+from subprocess import Popen, PIPE
 import sqlite3
 import tempfile
 import os
@@ -375,8 +375,7 @@ class ScannerEngine:
             'Copying file using args: %s %s' %
             (inPath, destination_path))
         command = ['/usr/bin/cp', inPath, destination_path]
-        p = subprocess.Popen(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = Popen(command, stdout=PIPE, stderr=PIPE)
         cpOut, cpErr = p.communicate()
         p = None
 
@@ -406,7 +405,7 @@ class ScannerEngine:
 
         for i in range(1, nbrPages + 1):
             logging.info('Running scanpage: ' + scanpagePrg + ' ' + scanpageOpts)
-            p = subprocess.Popen(locScanpagePrgLst, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = Popen(locScanpagePrgLst, stdout=PIPE, stderr=PIPE)
             spOut, spErr = p.communicate()
             locTfPfx = "{0:0>3}".format(i)
             tmpFP, tmpFN = tempfile.mkstemp(prefix = locTfPfx + '_', suffix='.tif',text=False, dir=tmpLoc)
@@ -433,7 +432,7 @@ class ScannerEngine:
         convertPrgList = convertPrg.split()
         convertPrgList.append(tmpFN)
 
-        p = subprocess.Popen(convertPrgList, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = Popen(convertPrgList, stdout=PIPE, stderr=PIPE)
         cvOut, cvErr = p.communicate()
         p = None
 
@@ -445,7 +444,7 @@ class ScannerEngine:
 
         newFn = sessId + '-d' + docNbr + '.pdf'
         mvString = '/usr/bin/mv ' + tmpFN + ' ' + newFn
-        p = subprocess.Popen(mvString.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = Popen(mvString.split(), stdout=PIPE, stderr=PIPE)
         mvOut, mvErr = p.communicate()
         p = None
 
@@ -457,7 +456,7 @@ class ScannerEngine:
         cpString = '/usr/bin/cp ' + newFn + ' ' + outPath
         logging.info("Copying file using args: " + cpString)
 
-        p = subprocess.Popen(cpString.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = Popen(cpString.split(), stdout=PIPE, stderr=PIPE)
         cpOut, cpErr = p.communicate()
         p = None
 
@@ -476,7 +475,7 @@ class ScannerEngine:
 
         logging.info('Looking for scanners')
 
-        p = subprocess.Popen(scannerListPrg.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = Popen(scannerListPrg.split(), stdout=PIPE, stderr=PIPE)
         locOut, locErr = p.communicate()
         p = None
 
