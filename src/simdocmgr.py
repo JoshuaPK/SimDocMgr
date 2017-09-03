@@ -33,19 +33,23 @@ from datetime import datetime
 
 # Config Values:
 
-BUILD_DATE = '02-APR-2017'
+BUILD_DATE = '02-SEP-2017'
 
 # Sticky Effective Date: Does the effective date zero out with each new document?
+# If True, the date is sticky (Doesn't zero out)
 
 stickyEffDt = True
 
 # For the Canon Lide35, a yellow carbon has a good threshold of 27.
 #scanpagePrg = '/usr/bin/scanimage  --format=TIFF --mode=Lineart --resolution=300 --threshold=27'
 
+# For monchrome documents on the Lide35, the threshold needs to be tweaked
+#scanpagePrg = '/usr/bin/scanimage  --format=TIFF --mode=Lineart --resolution=300 --threshold=10'
+
 # For the Epson CX7400, Threshold is not an allowable option for Lineart.
 scanpagePrg = '/usr/bin/scanimage  --format=TIFF --mode=Lineart --resolution=300'
-scanpageOpts = ''
 
+scanpageOpts = ''
 scannerListPrg = '/usr/bin/scanimage -L'
 chosenScanner = ''
 scannerDeviceRE = "^device `(.*)' is a.*"
