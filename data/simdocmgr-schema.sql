@@ -2,8 +2,8 @@
 -- Copyright 2016 Joshua Kramer
 
 create table doc_tags (
-        tag_text    varchar,
-        create_date varchar
+    tag_text    varchar,
+    create_date varchar
 );
 
 create table doc_attributes (
@@ -21,6 +21,27 @@ create table documents (
     doc_name        varchar
 );
 
+-- This table requires some explanation.  The autoindexer can have many rules;
+-- each rule will scan the document text for a match to a particular regex,
+-- and if the match is found, a tag will be added to that document in the
+-- database.  This will be written in such a way that rules can be added to
+-- the database at a later date and each document can be re-scanned to see if
+-- the new rule matches.
+
+create table document_log (
+    doc_id          bigint,
+    event_dts       varchar,
+    event_subject   varchar,
+    rule_name       varchar,
+    event_desc      varchar
+)
+
+create table document_rules (
+    rule_name       varchar,
+    rule_regex      varchar,
+    rule_tag        varchar
+)
+
 create table n_docs_tags (
     doc_id  bigint,
     tag_id  bigint,
@@ -32,8 +53,8 @@ create table n_docs_attribs (
     attrib_id   bigint,
     create_date varchar
 );
-    
 
+create index diad ON documents(autoindex_date);
 create index dttt ON doc_tags(tag_text);
 create index ndd ON n_docs_tags(doc_id);
 create index ndt ON n_docs_tags(tag_id);

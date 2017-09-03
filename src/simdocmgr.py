@@ -35,6 +35,10 @@ from datetime import datetime
 
 BUILD_DATE = '02-APR-2017'
 
+# Sticky Effective Date: Does the effective date zero out with each new document?
+
+stickyEffDt = True
+
 # For the Canon Lide35, a yellow carbon has a good threshold of 27.
 #scanpagePrg = '/usr/bin/scanimage  --format=TIFF --mode=Lineart --resolution=300 --threshold=27'
 
@@ -158,6 +162,9 @@ class ScannerChoosingForm(npyscreen.ActionFormMinimal):
 
         scanEngine = ScannerEngine()
         locScanListStr= scanEngine.find_scanners()
+
+        # TODO: scan the returned text for the string "No scanners were identified"
+
         locScanList = locScanListStr.split('\n')
         del locScanList[-1]
 
@@ -285,6 +292,8 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
     def new_document(self, other_arg):
 
+        global stickyEffDt
+
         locProceed = npyscreen.notify_ok_cancel('Create New Document?', 'Command Dialog', editw = 2)
 
         if locProceed is False:
@@ -296,7 +305,8 @@ class ScannerSessionForm(npyscreen.FormBaseNew):
 
         self.fldTags.entry_widget.clear_values()
         self.fldTags.value = ''
-        self.fldEffDt.value = ''
+        if stickyEffDt == False:
+            self.fldEffDt.value = ''
         self.fldNumPgs.value = 1
         self.tagList.values = []
 
