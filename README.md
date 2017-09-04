@@ -36,6 +36,7 @@ You can also choose the Effective Date of the document, as well as the number of
 
 1. Write a GUI program to retrieve the documents.  (This is planned to be written using pyQt.)
    a. How about Django?  http://blog.lotech.org/postgres-full-text-search-with-django.html
+   b. https://pdfobject.com
 2. Add the 'Import PDF' functionality so that we can import documents that are already PDFs.
 3. Properly handle multipage/document fed scanners.
 4. Integrate pyOCR so that you can scan all your documents to one PDF, and SimDocMgr will go into the PDF, splitting and tagging documents as required.
